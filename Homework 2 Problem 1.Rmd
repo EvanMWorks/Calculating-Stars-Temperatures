@@ -1,0 +1,117 @@
+---
+title: "Homework 2 Problem 1"
+output: html_document
+date: "2025-02-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+
+```
+
+```{r}
+
+star1 <- read_csv("star1.csv")
+star2 <- read_csv("star2.csv")
+star3 <- read_csv("star3.csv")
+
+
+```
+
+
+```{r}
+
+h <- 6.6261*10^-34
+c <- 3*10^8
+k <- 1.381*10^-23
+
+A<-2*h*(c^2)
+
+planck <- function(wavelength, em, temp){
+  thing1 <- em*(A/(wavelength^5))
+  thing2 <- (1/((exp(h*c/(wavelength*k*temp)))-1))
+  return(thing1 * thing2)
+}
+
+
+coeffs2 <- coefficients(nls(flux ~ planck(wavelength_nm*1E-9, em, T), data = star2, start = list(em = 1, T = 20000)))
+coeffs3 <- coefficients(nls(flux ~ planck(wavelength_nm*1E-9, em, T), data = star3, start = list(em = 1, T = 20000)))
+
+coeffs1 <- coefficients(nls(flux ~ planck(wavelength_nm*1E-9, em, T), data = star1, start = list(em = 1, T = 20000)))
+
+
+nls1 <- nls(flux ~ planck(wavelength_nm*1E-9, em, T), data = star1, start = list(em = 1, T = 20000))
+nls2 <- nls(flux ~ planck(wavelength_nm*1E-9, em, T), data = star2, start = list(em = 1, T = 20000))
+nls3 <- nls(flux ~ planck(wavelength_nm*1E-9, em, T), data = star3, start = list(em = 1, T = 20000))
+
+
+preNls1 <- predict(nls1)
+preNls2 <- predict(nls2)
+preNls3 <- predict(nls3)
+
+```
+
+```{r}
+
+ggplot(star1, aes(x = wavelength_nm, y = flux))+
+  geom_point()
+
+plot(star1$wavelength_nm*10^-9, star1$flux, xlab = "Wavelength (Meters)", ylab = "Flux (Watt/Cubic Meter)")
+
+
+```
+
+
+```{r}
+
+plot <- ggplot(star1, aes(wavelength_nm*10^-9, y = flux))+
+  geom_point()+
+  theme_bw()+
+  geom_smooth(data = star1, aes(x= wavelength_nm*10^-9, y = preNls1))+
+  xlab("Wavelength (Meters)")+
+  ylab("Flux (Watts per Cubic Meters)")+
+  ggtitle("Star's Brightness and Wavelength")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+plot2 <- ggplot(star2, aes(wavelength_nm*10^-9, y = flux))+
+  geom_point()+
+  theme_bw()+
+  geom_smooth(data = star2, aes(x= wavelength_nm*10^-9, y = preNls2))+
+  xlab("Wavelength (Meters)")+
+  ylab("Flux (Watts per Cubic Meters)")+
+  ggtitle("Star's Brightness and Wavelength")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+plot3 <- ggplot(star3, aes(wavelength_nm*10^-9, y = flux))+
+  geom_point()+
+  theme_bw()+
+  geom_smooth(data = star3, aes(x= wavelength_nm*10^-9, y = preNls3))+
+  xlab("Wavelength (Meters)")+
+  ylab("Flux (Watts per Cubic Meters)")+
+  ggtitle("Star's Brightness and Wavelength")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+grid.arrange(plot1, plot2, plot3, ncol=3)
+```
+
+
+```{r}
+
+Peak1 <- 403.9244
+Peak2 <- 378.4427
+Peak3 <- 557.4425
+
+
+wien <- function(peak){
+  ((2.8977*10^-3))/(peak*10^-9)
+}
+
+
+wientemp1 <- wien(Peak1)
+wientemp2 <- wien(Peak2)
+wientemp3 <- wien(Peak3)
+print(coeffs1[2]-wientemp1)
+```

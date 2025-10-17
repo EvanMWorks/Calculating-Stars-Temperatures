@@ -1,0 +1,205 @@
+---
+title: "Homework 2 Problem 1"
+authors: 
+  - "Luna Lum"
+  - "Evan Works"
+date: "today"
+format: 
+  html:
+    embed-resources: true
+    theme: cosmo
+    title-block-banner: true
+---
+
+# Calculating Stars' Temperatures
+
+### Introduction
+
+In this problem we are provided with three data sets each containing information on a different star. With the given information we are wanting to calculate the surface temperature of each of these stars through two different methods. These two methods are Planck's law and Wien's. Each provides us with an equation to calculate the temperature. We will be completing this problem in Rstudio, so first we need to import some libraries.
+
+```{r}
+#| echo = TRUE, results = "hide", output = FALSE, warning = FALSE
+
+library(tidyverse)
+library(ggplot2)
+```
+
+We will mostly be using tidyverse to calculate the non-linear trend of our data. The data we are given provides us with several different wavelengths and fluxes/levels of brightness, and we will track this tend to find the temperature of each star. Then we will show this trend visually using ggplot2. You can see how the data looks below.
+
+```{r}
+#| code-fold: true
+#| output: false
+
+star1 <- read_csv("star1.csv")
+star2 <- read_csv("star2.csv")
+star3 <- read_csv("star3.csv")
+
+```
+
+```{r}
+#| echo: FALSE
+
+head(star1)
+
+```
+
+### Planck's Law
+
+Planck's Law provides us with an equation that calculates the brightness of a star given the star's temperature in kelvin and the wavelength that the star emits. The equation that the law gives us is the following.
+
+$$
+B(\lambda, T) = \epsilon\frac{2hc^2}{\lambda^5}
+\frac{1}{\exp\left(\frac{hc}{\lambda k_B T}\right) - 1}
+$$
+
+This works such that $h, c, k_{B}$ are constants, the wavelength, $\lambda$, is in meters, the temperature, $T$, is in kelvin, and $\epsilon$, is an unknown ratio. As shown previously our data provides us with a variety of different wavelengths, and levels of brightness of the star. Given this, and the fact that we have two unknown variables, $\epsilon$ and $T$, using this equation, we will have to fit a line to our data to calculate the temperature. We find this line using the tidyverse, and then will visualize it with ggplot2. The following code with calculate the temperature. Note that the predict(nls1) will be used to graph our our trend and, the coeffs\[2\] will actually tell us the temperature found using Planck's law. Addtionally, this code is only for one of the stars, but the process is the exact same for the other two.
+
+```{r}
+
+h <- 6.6261*10^-34
+c <- 3*10^8
+k <- 1.381*10^-23
+
+A<-2*h*(c^2)
+
+planck <- function(wavelength, em, temp){
+  thing1 <- em*(A/(wavelength^5))
+  thing2 <- (1/((exp(h*c/(wavelength*k*temp)))-1))
+  return(thing1 * thing2)
+}
+
+#For Graph
+nls1 <- nls(flux ~ planck(wavelength_nm*1E-9, em, T), data = star1, start = list(em = 1, T = 20000))
+preNls1 <- predict(nls1)
+
+#Calculating Temp
+coeffs1 <- coefficients(nls(flux ~ planck(wavelength_nm*1E-9, em, T), data = star1, start = list(em = 1, T = 20000)))
+plancksTemp1 <- as.numeric(coeffs1[2])
+```
+
+```{r}
+#| code-fold: true 
+
+coeffs2 <- coefficients(nls(flux ~ planck(wavelength_nm*1E-9, em, T), data = star2, start = list(em = 1, T = 20000)))
+coeffs3 <- coefficients(nls(flux ~ planck(wavelength_nm*1E-9, em, T), data = star3, start = list(em = 1, T = 20000)))
+
+
+
+
+nls2 <- nls(flux ~ planck(wavelength_nm*1E-9, em, T), data = star2, start = list(em = 1, T = 20000))
+nls3 <- nls(flux ~ planck(wavelength_nm*1E-9, em, T), data = star3, start = list(em = 1, T = 20000))
+
+
+preNls2 <- predict(nls2)
+preNls3 <- predict(nls3)
+
+
+plancksTemp2 <- as.numeric(coeffs2[2])
+plancksTemp3 <- as.numeric(coeffs3[2])
+```
+
+Now that we have done these calculations, we can visualize our data.
+
+```{r}
+#| code-fold: true 
+#| warning: false
+#| error: false
+
+ggplot(star1, aes(wavelength_nm*10^-9, y = flux))+
+  geom_point()+
+  theme_bw()+
+  geom_smooth(data = star1, aes(x= wavelength_nm*10^-9, y = preNls1))+
+  xlab("Wavelength (Meters)")+
+  ylab("Flux (Watts per Cubic Meters)")+
+  ggtitle("Star's Brightness and Wavelength")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(star2, aes(wavelength_nm*10^-9, y = flux))+
+  geom_point()+
+  theme_bw()+
+  geom_smooth(data = star2, aes(x= wavelength_nm*10^-9, y = preNls2))+
+  xlab("Wavelength (Meters)")+
+  ylab("Flux (Watts per Cubic Meters)")+
+  ggtitle("Star's Brightness and Wavelength")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(star3, aes(wavelength_nm*10^-9, y = flux))+
+  geom_point()+
+  theme_bw()+
+  geom_smooth(data = star3, aes(x= wavelength_nm*10^-9, y = preNls3))+
+  xlab("Wavelength (Meters)")+
+  ylab("Flux (Watts per Cubic Meters)")+
+  ggtitle("Star's Brightness and Wavelength")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+## 
+
+### Wien's Law
+
+Wien's law is all about using the wavelength at the peak of the curve to calculate a stars temperature. If we have a peak we can then use the following equation.
+
+$$
+\lambda_{peak} = \frac{2.8977\times10^{-3}\text{ m}\cdot\text{K}}{T}
+$$
+
+Again, $\lambda$ needs to be in meters, and $T$ needs to be in kelvin. Now, it is important to recognize that you must have a clear peak to use this equation. That being said, have another look at our second star's graph.
+
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+
+ggplot(star2, aes(wavelength_nm*10^-9, y = flux))+
+  geom_point()+
+  theme_bw()+
+  geom_smooth(data = star2, aes(x= wavelength_nm*10^-9, y = preNls2))+
+  xlab("Wavelength (Meters)")+
+  ylab("Flux (Watts per Cubic Meters)")+
+  ggtitle("Star's Brightness and Wavelength")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+The peak is obviously out of sight, so using Wien's law would not give us an accurate estimation of the temperature of this star. Therefore we will only be using this method on two of the stars. First, we must find the peak, which is easily done by organizing our data set in Rstudio to find the highest point of the flux. Then we will use the associated wavelength, and plug that value into our equation as shown in the next block of code.
+
+```{r}
+
+Peak1 <- 403.9244
+Peak3 <- 557.4425
+
+
+wien <- function(peak){
+  ((2.8977*10^-3))/(peak*10^-9)
+}
+
+
+wientemp1 <- wien(Peak1)
+wientemp3 <- wien(Peak3)
+
+```
+
+Finally we can look at the values we found for the temperature of each star, and decide which values we feel are most accurate.
+
+```{r}
+#| code-fold: true 
+#| warning: false
+#| error: false
+
+stringwien1 <- as.character(wientemp1)
+stringwien3 <- as.character(wientemp3)
+stringplanck1 <- as.character(plancksTemp1)
+stringplanck2 <- as.character(plancksTemp2)
+stringplanck3 <- as.character(plancksTemp3)
+
+paste("Wien Temperature for Star 1:", stringwien1) 
+paste("Planck Temperature for Star 1:", stringplanck1)
+
+paste("Planck Temperature for Star 2:", stringplanck2)
+
+paste("Wien Temperature for Star 3:", stringwien3)
+paste("Planck Temperature for Star 3:", stringplanck3)
+
+```
+
+As you can see the temperatures we found are relatively close, but are still a little ways off from one another. When considering which is more accurate, it would make sense that Planck's law would be closer to correct. That is because Planck's law uses all of our data points instead of just the peak. However, using Wien's law still works as long as you have a peak value.
